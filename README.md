@@ -11,7 +11,9 @@ source .venv/bin/activate
 ```sh
 python3 server.py
 # Open http://127.0.0.1:8000
-python -m pytest
+python -m pytest            # tests
+python -m pytest --cov      # tests with a coverage report
+python -m ruff check .      # lint
 ```
 
 Start a game against another person or against the computer. Against the computer you

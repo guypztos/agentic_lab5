@@ -108,3 +108,16 @@ def test_promotion_setup_uses_real_moves():
     assert session.position[0]["b7"] == "wP"
     assert session.position[0]["g2"] == "bP"
     assert "a8" in legal_moves(session.position, "b7")
+
+
+def test_legal_action_lists_targets_for_the_side_to_move():
+    session = Session()
+    assert set(session.dispatch({"action": "legal", "source": "e2"})["targets"]) == {"e3", "e4"}
+    assert session.dispatch({"action": "legal", "source": "e7"})["targets"] == []
+    with pytest.raises(ValueError):
+        session.dispatch({"action": "legal", "source": "z9"})
+
+
+def test_unknown_action_is_rejected():
+    with pytest.raises(ValueError, match="Unknown action"):
+        Session().dispatch({"action": "dance"})

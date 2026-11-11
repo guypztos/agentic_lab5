@@ -67,3 +67,9 @@ def test_new_game_resets_the_opponent():
     assert session.view()["opponent"] == "human"
     with pytest.raises(ValueError):
         session.dispatch({"action": "new", "opponent": "robot"})
+
+
+def test_scores_stalemate_as_a_draw():
+    position = [{"a8": "bK", "b6": "wQ", "c1": "wK"}, "b"]
+    assert evaluate(position, "w") == 0
+    assert evaluate(position, "b") == 0
