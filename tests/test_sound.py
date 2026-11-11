@@ -42,5 +42,5 @@ def test_page_has_a_mute_control(base_url):
 def test_sound_module_in_node():
     result = subprocess.run(
         ["node", "--test", str(ROOT / "tests" / "js" / "sound.test.mjs")],
-        capture_output=True, text=True, timeout=60)
+        check=False, capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stdout + result.stderr
