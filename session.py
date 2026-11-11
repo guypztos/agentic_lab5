@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from computer import choose_move
+from captured import missing_pieces
 from game import (
     copy_position,
     legal_moves,
@@ -90,7 +91,8 @@ class Session:
                 and status(self.position) not in ("checkmate", "stalemate"))
 
     def sidebar(self):
-        return {}
+        # Worked out from the board, so it stays right after undo and load.
+        return {"captured": missing_pieces(self.position)}
 
     def to_dict(self):
         """The saved form: the opponent and every move played, in order.
