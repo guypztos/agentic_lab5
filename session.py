@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from computer import choose_move
+from captured import missing_pieces
 from game import (
     copy_position,
     legal_moves,
@@ -39,6 +40,7 @@ class Session:
         self.positions = []
         # Each move played, as "save" writes it. Undo removes the move again.
         self.history = []
+        self.captured = []
         self.opponent = opponent
         # "new" re-runs __init__ without a path, so an instance keeps the one it has.
         if save_path is not None:
@@ -71,7 +73,7 @@ class Session:
         self.history.pop()
 
     def after_move(self):
-        pass
+        self.captured = missing_pieces(self.position)
 
     def view(self):
         return {
@@ -90,7 +92,7 @@ class Session:
                 and status(self.position) not in ("checkmate", "stalemate"))
 
     def sidebar(self):
-        return {}
+        return {"captured": self.captured}
 
     def to_dict(self):
         """The saved form: the opponent and every move played, in order.
