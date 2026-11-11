@@ -56,6 +56,7 @@ def test_state_reports_the_game(url):
     state = json.loads(body)
     assert state["turn"] == "w" and len(state["board"]) == 32
     assert state["captured"] == [] and state["can_undo"] is False
+    assert state["can_redo"] is False
 
 
 def test_unknown_paths_are_not_found(url):

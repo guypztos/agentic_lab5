@@ -16,7 +16,9 @@ async function request(action) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error);
-  if (action.action === 'move' || action.action === 'computer-move') placeSound(result.moves.at(-1).includes('x'));
+  if (['move', 'computer-move', 'redo'].includes(action.action) && result.moves.length) {
+    placeSound(result.moves.at(-1).includes('x'));
+  }
   return result;
 }
 
@@ -97,6 +99,7 @@ function render() {
     return item;
   }));
   document.querySelector('#undo').disabled = !state.can_undo;
+  document.querySelector('#redo').disabled = !state.can_redo;
   document.querySelector('#captured-panel').hidden = !Object.hasOwn(state, 'captured');
   const captured = state.captured || [];
   document.querySelector('#captured').replaceChildren(...captured.map(pieceGlyph));
