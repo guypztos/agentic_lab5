@@ -40,12 +40,19 @@ class Session:
         self.positions = []
         # Each move played, as "save" writes it. Undo removes the move again.
         self.history = []
+        # Moves taken back by undo, most recent last; redo replays the last one.
+        self.undone = []
         self.opponent = opponent
         # "new" re-runs __init__ without a path, so an instance keeps the one it has.
         if save_path is not None:
             self.save_path = Path(save_path)
 
     def play(self, source, target, promotion=None):
+        """Play a new move. It starts a different continuation, so redo is discarded."""
+        self.apply(source, target, promotion)
+        self.undone = []
+
+    def apply(self, source, target, promotion=None):
         before = copy_position(self.position)
         label = move(self.position, source, target, promotion)
         self.positions.append(before)
@@ -72,7 +79,24 @@ class Session:
     def undo_one(self):
         self.position = self.positions.pop()
         self.notation.pop()
-        self.history.pop()
+        self.undone.append(self.history.pop())
+
+    def redo(self):
+        """Replay the last undone move; against the computer, the reply it had too.
+
+        The mirror of undo: moves are restored until it is White's turn again, so the
+        computer's move comes back as it was played rather than being chosen afresh.
+        With nothing undone, nothing happens.
+        """
+        if not self.undone:
+            return
+        self.redo_one()
+        while (self.opponent == "computer" and self.position[1] != "w"
+               and self.undone):
+            self.redo_one()
+
+    def redo_one(self):
+        self.apply(**self.undone.pop())
 
     def after_move(self):
         pass
@@ -83,6 +107,7 @@ class Session:
             "turn": self.position[1],
             "moves": self.notation,
             "can_undo": bool(self.positions),
+            "can_redo": bool(self.undone),
             "opponent": self.opponent,
             "status": status(self.position),
             "winner": winner(self.position),
@@ -98,14 +123,17 @@ class Session:
         return {"captured": captured_pieces(self.positions, self.history)}
 
     def to_dict(self):
-        """The saved form: the opponent and every move played, in order.
+        """The saved form: the opponent, every move played, and the moves undone.
 
         Replaying the moves rebuilds everything else, including whatever later
-        features derive from the moves, so this is also enough to undo them.
+        features derive from the moves, so this is also enough to undo them. The
+        undone moves follow in the order they would be redone, so "moves" and
+        "undone" together read as one line of play.
         """
         return {"format": SAVE_FORMAT,
                 "opponent": self.opponent,
-                "moves": [dict(entry) for entry in self.history]}
+                "moves": [dict(entry) for entry in self.history],
+                "undone": [dict(entry) for entry in reversed(self.undone)]}
 
     @classmethod
     def from_dict(cls, data, save_path=None):
@@ -113,14 +141,20 @@ class Session:
         if not isinstance(data, dict) or data.get("format") != SAVE_FORMAT:
             raise ValueError("That is not a saved game from this program")
         moves = data.get("moves")
-        if not isinstance(moves, list) or not all(isinstance(m, dict) for m in moves):
-            raise ValueError("The saved game has no move list")
+        undone = data.get("undone", [])
+        for entries in (moves, undone):
+            if not isinstance(entries, list) or not all(isinstance(m, dict) for m in entries):
+                raise ValueError("The saved game has no move list")
         session = cls(data.get("opponent"), save_path)
         try:
-            for entry in moves:
-                session.play(**entry)
+            # Playing the undone moves too checks they are legal continuations;
+            # taking them back again leaves them ready to redo.
+            for entry in moves + undone:
+                session.apply(**entry)
         except (TypeError, ValueError) as error:
             raise ValueError(f"The saved game contains an invalid move: {error}") from error
+        for _ in undone:
+            session.undo_one()
         return session
 
     def save(self):
@@ -149,6 +183,8 @@ class Session:
             self.play(*choose_move(self.position))
         elif command == "undo":
             self.undo()
+        elif command == "redo":
+            self.redo()
         elif command == "legal":
             source = action.get("source")
             targets = legal_moves(self.position, source)

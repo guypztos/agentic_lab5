@@ -51,6 +51,13 @@ test('check, the end of the game and promotion add a chime', () => {
   assert.deepEqual(soundsFor('move', {moves: ['b7xa8=Q'], status: null}), ['capture', 'promote']);
 });
 
+test('redo sounds like the move it replays', () => {
+  assert.deepEqual(soundsFor('redo', {moves: ['e2-e4'], status: null}), ['move']);
+  assert.deepEqual(soundsFor('redo', {moves: ['e2-e4', 'd7-d5', 'e4xd5'], status: null}), ['capture']);
+  assert.deepEqual(soundsFor('redo', {moves: ['d8xh4#'], status: 'checkmate'}), ['capture', 'end']);
+  assert.deepEqual(soundsFor('redo', {moves: [], status: null}), []);
+});
+
 test('actions that change nothing on the board are silent', () => {
   for (const action of ['legal', 'save', 'load', undefined]) assert.deepEqual(soundsFor(action, {moves: ['e2-e4']}), []);
   assert.deepEqual(soundsFor('move', {}), []);

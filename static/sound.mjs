@@ -5,10 +5,11 @@ const MUTE_KEY = 'chess-sound-muted';
 
 // Which sounds an action's result should make, base sound first. A move is a piece landing
 // (a capture is a heavier strike); check, the end of the game and promotion add a chime.
+// Redo replays a move, so it sounds like that move.
 export function soundsFor(action, result) {
   if (action === 'new') return ['start'];
   if (action === 'undo') return ['undo'];
-  if (action !== 'move' && action !== 'computer-move') return [];
+  if (!['move', 'computer-move', 'redo'].includes(action)) return [];
   const label = result?.moves?.at(-1);
   if (!label) return [];
   const sounds = [label.includes('x') ? 'capture' : 'move'];
