@@ -57,6 +57,7 @@ aside h3 { font-size: .85rem; font-weight: 600; color: var(--muted); margin: 20p
 #controls button:hover { background: #313d55; border-color: var(--brass); }
 #controls button:disabled { opacity: .45; cursor: default; background: #283246; border-color: #3a465b; }
 #message { min-height: 1.5em; margin: 0 0 8px; color: #ff8a80; }
+#message.notice { color: var(--muted); }
 #moves { max-height: 320px; overflow: auto; margin: 0; padding-left: 2.2em;
   font-variant-numeric: tabular-nums; color: var(--muted); }
 #moves li { padding: 2px 0; }

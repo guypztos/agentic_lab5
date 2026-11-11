@@ -10,8 +10,8 @@ from session import Session
 STATIC = Path(__file__).parent / "static"
 
 
-def make_server(port=8000):
-    session = Session()
+def make_server(port=8000, save_path=None):
+    session = Session(save_path=save_path)
 
     class Handler(BaseHTTPRequestHandler):
         def respond(self, code, body, content_type):
