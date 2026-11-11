@@ -1,5 +1,8 @@
 """Application actions and information shown beside the board."""
 
+import json
+from pathlib import Path
+
 from computer import choose_move
 from game import (
     legal_moves,
@@ -19,18 +22,28 @@ PROMOTION_SETUP = [
     ("a6", "b7"), ("h3", "g2"),
 ]
 
+SAVE_FORMAT = 1
+
 
 class Session:
-    def __init__(self, opponent="human"):
+    # Where "save" writes and "load" reads. Tests give each session its own file.
+    save_path = Path(__file__).parent / "game.save.json"
+
+    def __init__(self, opponent="human", save_path=None):
         if opponent not in ("human", "computer"):
             raise ValueError("Unknown opponent")
         self.position = new_position()
         self.notation = []
+        self.history = []
         self.opponent = opponent
+        # "new" re-runs __init__ without a path, so an instance keeps the one it has.
+        if save_path is not None:
+            self.save_path = Path(save_path)
 
     def play(self, source, target):
         label = move(self.position, source, target)
         self.notation.append(label)
+        self.history.append({"source": source, "target": target})
         self.after_move()
 
     def after_move(self):
@@ -54,6 +67,46 @@ class Session:
     def sidebar(self):
         return {}
 
+    def to_dict(self):
+        """The saved form: the opponent and every move played, in order.
+
+        Replaying the moves rebuilds everything else, including whatever later
+        features derive from the moves, so this is also enough to undo them.
+        """
+        return {"format": SAVE_FORMAT,
+                "opponent": self.opponent,
+                "moves": [dict(entry) for entry in self.history]}
+
+    @classmethod
+    def from_dict(cls, data, save_path=None):
+        """A fresh session with the saved game replayed into it."""
+        if not isinstance(data, dict) or data.get("format") != SAVE_FORMAT:
+            raise ValueError("That is not a saved game from this program")
+        moves = data.get("moves")
+        if not isinstance(moves, list) or not all(isinstance(m, dict) for m in moves):
+            raise ValueError("The saved game has no move list")
+        session = cls(data.get("opponent"), save_path)
+        try:
+            for entry in moves:
+                session.play(**entry)
+        except (TypeError, ValueError) as error:
+            raise ValueError(f"The saved game contains an invalid move: {error}") from error
+        return session
+
+    def save(self):
+        self.save_path.write_text(json.dumps(self.to_dict(), indent=2) + "\n")
+
+    def load(self):
+        """Replace this game with the saved one. On any error the game is unchanged."""
+        try:
+            data = json.loads(self.save_path.read_text())
+        except FileNotFoundError:
+            raise ValueError("There is no saved game") from None
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(f"The saved game could not be read: {error}") from error
+        loaded = Session.from_dict(data, self.save_path)
+        vars(self).update(vars(loaded))
+
     def dispatch(self, action):
         command = action.get("action")
         if command == "move":
@@ -72,6 +125,10 @@ class Session:
             self.__init__()
             for source, target in PROMOTION_SETUP:
                 self.play(source, target)
+        elif command == "save":
+            self.save()
+        elif command == "load":
+            self.load()
         else:
             raise ValueError("Unknown action")
         return self.view()

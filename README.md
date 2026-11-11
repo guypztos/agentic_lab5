@@ -25,6 +25,12 @@ the far rank; a later branch adds promotion to a piece the player chooses. There
 draw rules (insufficient material, threefold repetition, the fifty-move rule) are not
 implemented either.
 
+**Save game** writes the current game to `game.save.json` next to `server.py`, replacing
+any earlier save; **Load game** replaces the game on the board with the saved one, including
+whether the opponent is a person or the computer. The file lists the opponent and the moves
+played, and loading replays them from the starting position, so a loaded game can be undone
+like one played by hand. The save survives "New game" and a server restart.
+
 To reach promotion quickly from a new game, play a2-a4, h7-h5, a4-a5, h5-h4, a5-a6,
 h4-h3, a6-b7, h3-g2. White can then play b7 to a8. In tests, the `promotion-setup` action
 plays the same moves.

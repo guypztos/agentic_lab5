@@ -4,6 +4,12 @@ const names = {K:'king', Q:'queen', R:'rook', B:'bishop', N:'knight', P:'pawn'};
 let state, selected = null, targets = [], busy = false;
 const message = document.querySelector('#message');
 
+// Errors are shown in red; a notice such as "Game saved" in the muted text colour.
+function say(text, notice = false) {
+  message.textContent = text;
+  message.classList.toggle('notice', notice);
+}
+
 async function request(action) {
   const response = await fetch('/api/action', {
     method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(action)
@@ -121,7 +127,7 @@ async function computerReply() {
 async function clickSquare(square) {
   if (busy) return;
   busy = true;
-  message.textContent = '';
+  say('');
   try {
     if (selected && targets.includes(square)) {
       state = await request({action:'move', source:selected, target:square});
@@ -134,7 +140,7 @@ async function clickSquare(square) {
     }
     render();
     await computerReply();
-  } catch (error) { message.textContent = error.message; }
+  } catch (error) { say(error.message); }
   finally { busy = false; }
 }
 
@@ -145,8 +151,10 @@ document.querySelector('#controls').onclick = async event => {
   try {
     state = await request({action: button.dataset.action, opponent: button.dataset.opponent});
     selected = null; targets = [];
-    message.textContent = ''; render();
-  } catch (error) { message.textContent = error.message; }
+    say({save: 'Game saved', load: 'Game loaded'}[button.dataset.action] ?? '', true);
+    render();
+    await computerReply();  // A loaded game may be waiting on the computer.
+  } catch (error) { say(error.message); }
   finally { busy = false; }
 };
 
@@ -154,4 +162,4 @@ try {
   const response = await fetch('/api/state');
   if (!response.ok) throw new Error('Could not load the game');
   state = await response.json(); render();
-} catch (error) { message.textContent = error.message; }
+} catch (error) { say(error.message); }
