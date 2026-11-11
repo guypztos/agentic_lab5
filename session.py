@@ -3,8 +3,8 @@
 import json
 from pathlib import Path
 
-from computer import choose_move
 from captured import captured_pieces
+from computer import choose_move
 from game import (
     copy_position,
     legal_moves,
@@ -14,7 +14,6 @@ from game import (
     status,
     winner,
 )
-
 
 # Legal from the standard starting position under this game's rules.
 # Next move: b7-a8, capturing a rook and reaching the last rank.

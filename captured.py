@@ -6,5 +6,5 @@ def captured_pieces(positions, moves):
 
     Comparing the board with the start would count a promoted pawn as captured.
     """
-    return sorted(before[0][entry["target"]] for before, entry in zip(positions, moves)
+    return sorted(before[0][entry["target"]] for before, entry in zip(positions, moves, strict=True)
                   if entry["target"] in before[0])
