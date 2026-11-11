@@ -31,6 +31,7 @@ def make_server(port=8000, save_path=None):
                 return
             routes = {"/": ("index.html", "text/html; charset=utf-8"),
                       "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+                      "/sound.mjs": ("sound.mjs", "text/javascript; charset=utf-8"),
                       "/style.css": ("style.css", "text/css; charset=utf-8")}
             if self.path not in routes:
                 self.send_json(404, {"error": "Not found"})

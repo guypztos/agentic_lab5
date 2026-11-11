@@ -1,8 +1,11 @@
+import {createSound, soundsFor} from '/sound.mjs';
+
 // Filled glyphs for both sides; CSS colours them white or black.
 const glyphs = {K:'♚\uFE0E', Q:'♛\uFE0E', R:'♜\uFE0E', B:'♝\uFE0E', N:'♞\uFE0E', P:'♟\uFE0E'};
 const names = {K:'king', Q:'queen', R:'rook', B:'bishop', N:'knight', P:'pawn'};
 let state, selected = null, targets = [], promotions = [], busy = false;
 const message = document.querySelector('#message');
+const sound = createSound({storage: globalThis.localStorage, makeContext: () => new AudioContext()});
 
 // Errors are shown in red; a notice such as "Game saved" in the muted text colour.
 function say(text, notice = false) {
@@ -16,43 +19,8 @@ async function request(action) {
   });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error);
-  if (action.action === 'move' || action.action === 'computer-move') placeSound(result.moves.at(-1).includes('x'));
+  sound.play(soundsFor(action.action, result));
   return result;
-}
-
-// A felted piece landing on a solid board, synthesized: decaying resonances (frequency Hz,
-// level, decay s) plus a short contact tick. A capture is one deeper, louder, longer strike.
-const RESONANCES = [[90, 0.5, 0.13], [180, 0.6, 0.1], [390, 0.45, 0.07], [850, 0.2, 0.046], [1425, 0.08, 0.03]];
-let audio, master;
-function placeSound(capture) {
-  try {
-    if (!audio) {
-      audio = new AudioContext();
-      master = audio.createDynamicsCompressor();
-      master.threshold.value = -10; master.ratio.value = 4;
-      master.connect(audio.destination);
-    }
-    const now = audio.currentTime + 0.01, out = audio.createGain();
-    const pitch = (capture ? 0.78 : 1) * (1 + (Math.random() - 0.5) * 0.06);
-    const length = capture ? 1.4 : 1;
-    out.gain.value = capture ? 1.45 : 1;
-    out.connect(master);
-    for (const [frequency, level, decay] of RESONANCES) {
-      const tone = audio.createOscillator(), envelope = audio.createGain();
-      tone.frequency.value = frequency * pitch;
-      envelope.gain.setValueAtTime(0, now);
-      envelope.gain.linearRampToValueAtTime(level, now + 0.0015);
-      envelope.gain.exponentialRampToValueAtTime(0.0001, now + decay * length);
-      tone.connect(envelope).connect(out); tone.start(now); tone.stop(now + decay * length + 0.02);
-    }
-    const noise = audio.createBuffer(1, Math.ceil(audio.sampleRate * 0.007), audio.sampleRate);
-    const samples = noise.getChannelData(0);
-    for (let i = 0; i < samples.length; i++) samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length) ** 3;
-    const tick = audio.createBufferSource(), band = audio.createBiquadFilter(), level = audio.createGain();
-    tick.buffer = noise; band.type = 'bandpass'; band.frequency.value = 1000 * pitch; band.Q.value = 0.9;
-    level.gain.value = 0.2;
-    tick.connect(band).connect(level).connect(out); tick.start(now);
-  } catch { /* Sound is decoration; a browser without audio still plays the game. */ }
 }
 
 function render() {
@@ -174,6 +142,14 @@ document.querySelector('#controls').onclick = async event => {
   } catch (error) { say(error.message); }
   finally { busy = false; }
 };
+
+const muteButton = document.querySelector('#mute');
+function renderMute() {
+  muteButton.textContent = sound.muted ? 'Sound: off' : 'Sound: on';
+  muteButton.setAttribute('aria-pressed', String(sound.muted));
+}
+muteButton.onclick = () => { sound.toggle(); renderMute(); };
+renderMute();
 
 try {
   const response = await fetch('/api/state');
