@@ -10,6 +10,7 @@ from game import (
     legal_moves,
     move,
     new_position,
+    promotes,
     status,
     winner,
 )
@@ -44,12 +45,15 @@ class Session:
         if save_path is not None:
             self.save_path = Path(save_path)
 
-    def play(self, source, target):
+    def play(self, source, target, promotion=None):
         before = copy_position(self.position)
-        label = move(self.position, source, target)
+        label = move(self.position, source, target, promotion)
         self.positions.append(before)
         self.notation.append(label)
-        self.history.append({"source": source, "target": target})
+        entry = {"source": source, "target": target}
+        if promotion is not None:
+            entry["promotion"] = promotion
+        self.history.append(entry)
         self.after_move()
 
     def undo(self):
@@ -90,6 +94,7 @@ class Session:
                 and status(self.position) not in ("checkmate", "stalemate"))
 
     def sidebar(self):
+        # Worked out from the recorded moves, so it stays right after undo and load.
         return {"captured": captured_pieces(self.positions, self.history)}
 
     def to_dict(self):
@@ -137,7 +142,7 @@ class Session:
         if command == "move":
             if self.computer_to_move():
                 raise ValueError("Wait for the computer's move")
-            self.play(action.get("source"), action.get("target"))
+            self.play(action.get("source"), action.get("target"), action.get("promotion"))
         elif command == "computer-move":
             if not self.computer_to_move():
                 raise ValueError("It is not the computer's turn")
@@ -145,7 +150,10 @@ class Session:
         elif command == "undo":
             self.undo()
         elif command == "legal":
-            return {"targets": legal_moves(self.position, action.get("source"))}
+            source = action.get("source")
+            targets = legal_moves(self.position, source)
+            return {"targets": targets,
+                    "promotions": [t for t in targets if promotes(self.position, source, t)]}
         elif command == "new":
             self.__init__(action.get("opponent", "human"))
         elif command == "promotion-setup":

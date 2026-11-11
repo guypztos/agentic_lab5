@@ -23,11 +23,11 @@ def test_display_after_capture_and_new_game():
     assert session.view()["captured"] == []
 
 
-def test_captures_are_listed_in_order_with_their_type():
+def test_captures_show_their_type_grouped_by_colour():
     session = Session()
     play(session, ("e2", "e4"), ("d7", "d5"), ("e4", "d5"), ("d8", "d5"),
          ("b1", "c3"), ("d5", "d2"), ("d1", "d2"))
-    assert captured(session) == ["bP", "wP", "wP", "bQ"]
+    assert captured(session) == ["bP", "bQ", "wP", "wP"]
 
 
 def test_promotion_setup_shows_both_captures():
